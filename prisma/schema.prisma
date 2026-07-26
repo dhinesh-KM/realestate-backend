@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ListingType {
+  RENT
+  SALE
+}
+
+enum PropertyType {
+  APARTMENT
+  VILLA
+  INDEPENDENT_HOUSE
+  PLOT
+  COMMERCIAL
+  PG
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  SOLD
+  RENTED
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  phone         String?
+  role          UserRole @default(USER)
+  isVerified    Boolean  @default(false) @map("is_verified")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+  properties    Property[]
+  inquiriesSent Inquiry[] @relation("InquirySender")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  family    String   // token family for reuse detection
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model Property {
+  id          String         @id @default(uuid())
+  ownerId     String         @map("owner_id")
+  title       String
+  description String
+  listingType ListingType    @map("listing_type")
+  propertyType PropertyType  @map("property_type")
+  status      PropertyStatus @default(ACTIVE)
+  price       Decimal        @db.Decimal(12, 2)
+  city        String
+  locality    String
+  state       String
+  pincode     String
+  latitude    Decimal?       @db.Decimal(10, 7)
+  longitude   Decimal?       @db.Decimal(10, 7)
+  bedrooms    Int
+  bathrooms   Int
+  areaSqft    Decimal        @map("area_sqft") @db.Decimal(10, 2)
+  isFurnished Boolean        @default(false) @map("is_furnished")
+  isActive    Boolean        @default(true) @map("is_active")
+  viewCount   Int            @default(0) @map("view_count")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  owner      User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  images     PropertyImage[]
+  inquiries  Inquiry[]
+
+  @@index([ownerId])
+  @@index([city])
+  @@index([isActive])
+  @@index([price])
+  @@index([createdAt])
+  @@map("properties")
+}
+
+model PropertyImage {
+  id           String   @id @default(uuid())
+  propertyId   String   @map("property_id")
+  url          String
+  key          String   // S3/Cloudinary key for deletion
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_images")
+}
+
+model Inquiry {
+  id           String   @id @default(uuid())
+  propertyId   String   @map("property_id")
+  senderId     String   @map("sender_id")
+  receiverId   String   @map("receiver_id")
+  message      String
+  status       String   @default("PENDING")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  sender   User     @relation("InquirySender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([senderId])
+  @@map("inquiries")
+}
