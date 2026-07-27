@@ -54,9 +54,19 @@ export class PropertyController {
   }
 
   async getById(req: Request, res: Response) {
-    const property = await propertyService.getPropertyById(req.params.id);
-    const similar  = await propertyService.getSimilarProperties(req.params.id);
-    return ApiResponse.success(res, { property, similar });
+    // Run both queries in parallel — detail and similar are independent
+    const [property, similarResult] = await Promise.all([
+      propertyService.getPropertyById(req.params.id),
+      propertyService.getSimilarProperties(req.params.id),
+    ]);
+    return ApiResponse.success(res, {
+      property,
+      similar: similarResult.properties,
+      similarMeta: {
+        algorithm:   similarResult.algorithm,
+        totalScored: similarResult.totalScored,
+      },
+    });
   }
 
   async update(req: Request, res: Response) {
@@ -91,8 +101,15 @@ export class PropertyController {
   }
 
   async getSimilar(req: Request, res: Response) {
-    const similar = await propertyService.getSimilarProperties(req.params.id);
-    return ApiResponse.success(res, { similar });
+    const result = await propertyService.getSimilarProperties(req.params.id);
+    return ApiResponse.success(res, {
+      similar: result.properties,
+      meta: {
+        algorithm:   result.algorithm,
+        totalScored: result.totalScored,
+        count:       result.properties.length,
+      },
+    });
   }
 }
 

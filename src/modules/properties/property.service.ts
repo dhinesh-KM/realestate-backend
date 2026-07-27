@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { getRedisClient } from '../../lib/redis';
 import { uploadImages, deleteImage, deleteImages } from '../../lib/s3';
 import { AppError } from '../../shared/apiError';
+import { similarPropertyService } from '../similar/similar.service';
 import { logger } from '../../shared/logger';
 import { PropertyStatus } from '../../shared/enums';
 import type {
@@ -98,6 +99,11 @@ export class PropertyService {
       });
 
       logger.info('Property created', { propertyId: property.id, ownerId });
+
+      // Warm similar cache in background — first visitor to the detail page
+      // gets a cache hit instead of a cold query
+      similarPropertyService.warmUp(property.id).catch(() => {});
+
       return property;
     } catch (err) {
       if (uploadedImages.length > 0) {
@@ -360,57 +366,9 @@ export class PropertyService {
     await this._invalidatePropertyCache(propertyId);
   }
 
-  // ── SIMILAR PROPERTIES ───────────────────────────────────────
-  async getSimilarProperties(propertyId: string): Promise<PropertyListItem[]> {
-    const redis    = getRedisClient();
-    const cacheKey = `property:similar:${propertyId}`;
-    const cached   = await redis.get(cacheKey).catch(() => null);
-    if (cached) return JSON.parse(cached);
-
-    const ref = await prisma.property.findUnique({
-      where:  { id: propertyId },
-      select: { city: true, locality: true, propertyType: true,
-                listingType: true, bedrooms: true, price: true, areaSqft: true },
-    });
-    if (!ref) return [];
-
-    const price    = parseFloat(ref.price.toString());
-    const areaSqft = parseFloat(ref.areaSqft.toString());
-
-    const similar = await prisma.$queryRaw<any[]>`
-      SELECT
-        p.id, p.title,
-        p.listing_type   AS "listingType",
-        p.property_type  AS "propertyType",
-        p.status, p.price, p.city, p.locality, p.state,
-        p.bedrooms, p.bathrooms,
-        p.area_sqft      AS "areaSqft",
-        p.is_furnished   AS "isFurnished",
-        p.view_count     AS "viewCount",
-        p.created_at     AS "createdAt",
-        pi.url           AS "primaryImage",
-        (
-          CASE WHEN p.city          = ${ref.city}           THEN 30 ELSE 0 END +
-          CASE WHEN p.locality      = ${ref.locality}       THEN 20 ELSE 0 END +
-          CASE WHEN p.property_type = ${ref.propertyType}::"PropertyType"   THEN 20 ELSE 0 END +
-          CASE WHEN ABS(p.bedrooms  - ${ref.bedrooms})      <= 1             THEN 15 ELSE 0 END +
-          CASE WHEN p.price BETWEEN ${price * 0.8}          AND ${price * 1.2} THEN 15 ELSE 0 END +
-          CASE WHEN p.listing_type  = ${ref.listingType}::"ListingType"     THEN 10 ELSE 0 END +
-          CASE WHEN p.area_sqft BETWEEN ${areaSqft * 0.7}  AND ${areaSqft * 1.3} THEN 10 ELSE 0 END
-        ) AS score
-      FROM properties p
-      LEFT JOIN property_images pi ON pi.property_id = p.id AND pi.is_primary = true
-      WHERE p.id != ${propertyId} AND p.is_active = true AND p.status = 'ACTIVE'::"PropertyStatus"
-      ORDER BY score DESC, p.created_at DESC
-      LIMIT 6
-    `;
-
-    const result: PropertyListItem[] = similar
-      .filter((r: any) => r.score > 0)
-      .map((r: any) => ({ ...r, price: r.price.toString(), areaSqft: r.areaSqft.toString() }));
-
-    await redis.setEx(cacheKey, CACHE_TTL.SIMILAR, JSON.stringify(result)).catch(() => {});
-    return result;
+  // ── SIMILAR PROPERTIES — delegated to SimilarPropertyService ─
+  async getSimilarProperties(propertyId: string) {
+    return similarPropertyService.getSimilarProperties(propertyId);
   }
 
   // ── PRIVATE HELPERS ──────────────────────────────────────────
@@ -435,7 +393,8 @@ export class PropertyService {
     const redis = getRedisClient();
     await Promise.allSettled([
       redis.del(`property:detail:${propertyId}`),
-      redis.del(`property:similar:${propertyId}`),
+      // Delegate similar cache invalidation to its own service
+      similarPropertyService.invalidate(propertyId),
     ]);
   }
 
