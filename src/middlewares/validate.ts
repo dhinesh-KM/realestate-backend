@@ -19,19 +19,30 @@ export const validate = (schemas: ValidateSchemas) => {
       if (schemas.body) {
         req.body = schemas.body.parse(req.body);
       }
+      // if (schemas.query) {
+      //   req.query = schemas.query.parse(req.query) as any;
+      // }
       if (schemas.query) {
-        req.query = schemas.query.parse(req.query) as any;
+        const parsedQuery = schemas.query.parse(req.query);
+        // Safely mutate req.query properties without overwriting the object getter
+        Object.keys(req.query).forEach(key => delete (req.query as any)[key]);
+        Object.assign(req.query, parsedQuery);
       }
       if (schemas.params) {
         req.params = schemas.params.parse(req.params) as any;
       }
       next();
     } catch (err) {
+      
       if (err instanceof ZodError) {
-        const errors = err.errors.map((e) => ({
+        console.log("error---",err.issues)
+        const rawIssues = (err as any).issues || (err as any).errors || JSON.parse(err.message);
+
+        const errors = rawIssues.map((e) => ({
           field: e.path.join('.'),
           message: e.message,
         }));
+
 
         return res.status(400).json({
           success: false,

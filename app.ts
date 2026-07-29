@@ -15,6 +15,8 @@ import { logger } from './src/shared/logger';
 
 // ── Route imports ──────────────────────────────────────────────
 import authRoutes from './src/modules/auth/auth.route';
+import propertyRoutes from './src/modules/properties/property.route';
+
 
 export function createApp(): Application {
   const app = express();
@@ -92,7 +94,7 @@ export function createApp(): Application {
   const apiRouter = express.Router();
 
   apiRouter.use('/auth', authRoutes);
-  // Future: apiRouter.use('/properties', propertyRoutes);
+  Future: apiRouter.use('/properties', propertyRoutes);
   // Future: apiRouter.use('/search', searchRoutes);
   // Future: apiRouter.use('/inquiries', inquiryRoutes);
 

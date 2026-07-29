@@ -1,24 +1,24 @@
 import { z } from 'zod';
 import { ListingType, PropertyType, PropertyStatus } from '../../shared/enums';
 
-const priceSchema = z
+const priceSchema = z.coerce 
   .number({ required_error: 'Price is required' })
   .positive('Price must be a positive number')
   .max(999_999_999, 'Price is unrealistically high');
 
-const bedroomsSchema = z
+const bedroomsSchema = z.coerce
   .number()
   .int('Bedrooms must be a whole number')
   .min(0, 'Bedrooms cannot be negative')
   .max(20, 'Bedrooms cannot exceed 20');
 
-const bathroomsSchema = z
+const bathroomsSchema = z.coerce
   .number()
   .int('Bathrooms must be a whole number')
   .min(1, 'At least 1 bathroom required')
   .max(20, 'Bathrooms cannot exceed 20');
 
-const areaSchema = z
+const areaSchema = z.coerce
   .number({ required_error: 'Area is required' })
   .positive('Area must be positive')
   .max(100_000, 'Area seems unrealistically large');
@@ -54,17 +54,32 @@ export const createPropertySchema = z.object({
   pincode: z.string({ required_error: 'Pincode is required' }).trim()
     .regex(/^\d{6}$/, 'Pincode must be a 6-digit number'),
 
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
 
   bedrooms:  bedroomsSchema,
   bathrooms: bathroomsSchema,
   areaSqft:  areaSchema,
 
-  isFurnished: z.boolean().default(false),
+  isFurnished: z.preprocess((val) => {
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    return val;
+  }, z.boolean().default(false)),
 
-  amenityIds: z.array(z.string().uuid('Each amenity ID must be a valid UUID'))
-    .max(20, 'Cannot attach more than 20 amenities').optional().default([]),
+  amenityIds: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try {
+        // Enforces valid double quotes onto raw string bracket items to ensure clean JSON parsing
+        const fixedJson = val.replace(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/gi, '"$1"');
+        return JSON.parse(fixedJson);
+      } catch {
+        return [val]; // Fallback for plain text single values
+      }
+    }
+    return val;
+  }, z.array(z.string().uuid('Each amenity ID must be a valid UUID')).max(20, 'Cannot attach more than 20 amenities').optional().default([])),
+
 });
 
 export const updatePropertySchema = createPropertySchema

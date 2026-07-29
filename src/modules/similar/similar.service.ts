@@ -6,8 +6,8 @@ import type {
   ReferenceProperty,
   SimilarPropertiesResult,
   ScoredCandidate,
-} from './similar.types';
-import { SIMILAR_COUNT } from './similar.types';
+} from './similar.type';
+import { SIMILAR_COUNT } from './similar.type';
 
 // ── Cache config ──────────────────────────────────────────────
 
@@ -260,7 +260,7 @@ export class SimilarPropertyService {
     const priceMax = ref.price * 1.4;
 
     const candidates = await prisma.$queryRaw<any[]>`
-      SELECT ${prisma.$raw(CANDIDATE_COLUMNS)}
+      SELECT ${prisma.$queryRaw(CANDIDATE_COLUMNS)}
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true
@@ -303,7 +303,7 @@ export class SimilarPropertyService {
     excludeIds: Set<string>
   ): Promise<ScoredCandidate[]> {
     const candidates = await prisma.$queryRaw<any[]>`
-      SELECT ${prisma.$raw(CANDIDATE_COLUMNS)}
+      SELECT ${prisma.$queryRaw(CANDIDATE_COLUMNS)}
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true
@@ -334,7 +334,7 @@ export class SimilarPropertyService {
     const excludeArr = [...excludeIds];
 
     const candidates = await prisma.$queryRaw<any[]>`
-      SELECT ${prisma.$raw(CANDIDATE_COLUMNS)}
+      SELECT ${prisma.$queryRaw(CANDIDATE_COLUMNS)}
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true

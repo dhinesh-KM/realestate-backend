@@ -196,9 +196,9 @@ export class PropertyService {
 
     const property = await prisma.property.findUnique({
       where:  { id },
-      select: DETAIL_SELECT,
+      // select: DETAIL_SELECT,
     }) as any;
-
+    console.log("property",property.isActive, DETAIL_SELECT, id)
     if (!property)           throw AppError.notFound('Property not found');
     if (!property.isActive)  throw AppError.notFound('Property is no longer available');
 

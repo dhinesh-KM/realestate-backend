@@ -5,9 +5,9 @@ import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/env';
-import { AppError } from '../shared/AppError';
+import { AppError } from '../shared/apiError';
 import { logger } from '../shared/logger';
-import { UploadedImage } from '../modules/properties/property.types';
+import { UploadedImage } from '../modules/properties/property.type';
 
 // ── S3 client singleton ───────────────────────────────────────
 

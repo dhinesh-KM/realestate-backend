@@ -44,7 +44,7 @@ enum InquiryStatus {
 // ─────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(uuid())
+  id String @id @default(uuid()) @db.Uuid
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String
@@ -63,8 +63,8 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid @map("user_id")
   tokenHash String   @unique @map("token_hash")
   isRevoked Boolean  @default(false) @map("is_revoked")
   expiresAt DateTime @map("expires_at")
@@ -81,8 +81,8 @@ model RefreshToken {
 }
 
 model Property {
-  id           String         @id @default(uuid())
-  ownerId      String         @map("owner_id")
+  id        String @id @default(uuid()) @db.Uuid
+  ownerId   String @db.Uuid @map("owner_id")
   title        String
   description  String
   listingType  ListingType    @map("listing_type")
@@ -123,8 +123,8 @@ model Property {
 }
 
 model PropertyImage {
-  id           String   @id @default(uuid())
-  propertyId   String   @map("property_id")
+  id         String @id @default(uuid()) @db.Uuid
+  propertyId String @db.Uuid @map("property_id")  
   url          String
   key          String
   isPrimary    Boolean  @default(false) @map("is_primary")
@@ -139,10 +139,10 @@ model PropertyImage {
 }
 
 model Inquiry {
-  id           String        @id @default(uuid())
-  propertyId   String        @map("property_id")
-  senderId     String        @map("sender_id")
-  receiverId   String        @map("receiver_id")
+  id         String @id @default(uuid()) @db.Uuid
+  propertyId String @db.Uuid @map("property_id")
+  senderId   String @db.Uuid @map("sender_id")
+  receiverId String @db.Uuid @map("receiver_id")
   message      String        @db.Text
   status       InquiryStatus @default(PENDING)
   // Tracks when the sender last submitted to this property.

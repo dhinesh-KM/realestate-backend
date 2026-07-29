@@ -1,6 +1,6 @@
-import { WEIGHTS, MIN_SCORE_THRESHOLD } from './similar.types';
-import type { ReferenceProperty, ScoredCandidate } from './similar.types';
-import type { PropertyListItem } from '../properties/property.types';
+import { WEIGHTS, MIN_SCORE_THRESHOLD } from './similar.type';
+import type { ReferenceProperty, ScoredCandidate } from './similar.type';
+import type { PropertyListItem } from '../properties/property.type';
 
 // ── Haversine distance (km) ───────────────────────────────────
 // Pure math — computes great-circle distance between two lat/lng points.

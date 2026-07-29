@@ -35,28 +35,6 @@ router.get(
   asyncHandler(propertyController.list.bind(propertyController))
 );
 
-/**
- * GET /properties/:id
- * Property detail page + similar properties.
- */
-router.get(
-  '/:id',
-  optionalAuthenticate,
-  validate({ params: uuidParamSchema }),
-  asyncHandler(propertyController.getById.bind(propertyController))
-);
-
-/**
- * GET /properties/:id/similar
- * Similar properties only (for lazy-loading on the detail page).
- */
-router.get(
-  '/:id/similar',
-  validate({ params: uuidParamSchema }),
-  asyncHandler(propertyController.getSimilar.bind(propertyController))
-);
-
-// ── Protected routes (auth required) ─────────────────────────
 
 /**
  * GET /properties/mine
@@ -69,6 +47,31 @@ router.get(
   validate({ query: listPropertiesSchema }),
   asyncHandler(propertyController.getMyListings.bind(propertyController))
 );
+
+/**
+ * GET /properties/:id/similar
+ * Similar properties only (for lazy-loading on the detail page).
+ */
+router.get(
+  '/:id/similar',
+  validate({ params: uuidParamSchema }),
+  asyncHandler(propertyController.getSimilar.bind(propertyController))
+);
+
+/**
+ * GET /properties/:id
+ * Property detail page + similar properties.
+ */
+router.get(
+  '/:id',
+  optionalAuthenticate,
+  validate({ params: uuidParamSchema }),
+  asyncHandler(propertyController.getById.bind(propertyController))
+);
+
+
+// ── Protected routes (auth required) ─────────────────────────
+
 
 /**
  * POST /properties
