@@ -264,7 +264,7 @@ export class SimilarPropertyService {
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true
-      WHERE  p.id          != ${ref.id}
+      WHERE  p.id          != ${ref.id}::uuid
         AND  p.is_active    = true
         AND  p.listing_type = ${ref.listingType}::"ListingType"
         AND  (
@@ -307,7 +307,7 @@ export class SimilarPropertyService {
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true
-      WHERE  p.id          != ${ref.id}
+      WHERE  p.id          != ${ref.id}::uuid
         AND  p.id          != ALL(${[...excludeIds]}::uuid[])
         AND  p.is_active    = true
         AND  p.city         = ${ref.city}
@@ -338,7 +338,7 @@ export class SimilarPropertyService {
       FROM   properties p
       LEFT   JOIN property_images pi
                ON pi.property_id = p.id AND pi.is_primary = true
-      WHERE  p.id            != ${ref.id}
+      WHERE  p.id            != ${ref.id}::uuid
         AND  p.id            != ALL(${excludeArr.length > 0 ? excludeArr : ['00000000-0000-0000-0000-000000000000']}::uuid[])
         AND  p.is_active      = true
         AND  p.property_type  = ${ref.propertyType}::"PropertyType"
